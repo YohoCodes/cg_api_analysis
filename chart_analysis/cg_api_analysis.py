@@ -59,6 +59,10 @@ class analyze_coin_market_chart:
         days : int, optional
             Number of days of data to retrieve (default is 364).
             Due to free API limitations, 364 is the max possible value.
+        limit : int or bool, optional
+            If specified as an integer, automatically retrieves the top N coins by market cap
+            from the CoinGecko API and uses them instead of the provided id parameter.
+            If False (default), uses the provided id parameter as normal.
         """
         # Only allow daily interval since hourly is for enterprise users
         self.id = id
@@ -227,9 +231,63 @@ class analyze_coin_market_chart:
 
         print(f"\n{len(self.id)} tables saved!\n")
 
-    def correlation_analysis(self):
+    def price_correlation(self):
         """
-        Computes the correlation of percent changes between all pairs of coins.
+        Computes the correlation of daily close prices between all pairs of coins.
+
+        If self.id is a list, uses the saved_tables for each coin.
+        If self.id is a string, returns None (not enough data for correlation).
+
+        Returns
+        -------
+        pd.DataFrame or None
+            DataFrame with columns ['coin1', 'coin2', 'correlation'] for each coin pair,
+            sorted by correlation (descending). Returns None if only one coin is provided.
+        """
+        # If only one coin, correlation is not defined
+        if isinstance(self.id, str):
+            print("Correlation analysis requires at least two coins.")
+            return None
+
+        # Use saved_tables to build price DataFrame
+        first = True
+        for id, table in self.saved_tables.items():
+            # First iteration creates initial dataframe
+            if first:
+                coin_comparison = table[['daily_close']].rename(columns={'daily_close': id})
+                first = False
+            else:
+                # Subsequent iterations join the new table to the existing dataframe on index
+                slice = table[['daily_close']].rename(columns={'daily_close': id})
+                coin_comparison = coin_comparison.join(slice)
+
+        # Drop rows with any NaN to ensure proper alignment
+        coin_comparison = coin_comparison.dropna()
+
+        # Calculate the correlation matrix
+        corr_matrix = coin_comparison.corr()
+
+        # Save all unique combinations of coin ids
+        pairs = combinations(self.id, 2)
+
+        # Prepare data for DataFrame
+        data = []
+        for coin1, coin2 in pairs:
+            corr = corr_matrix.at[coin1, coin2]
+            data.append({'coin1': coin1, 'coin2': coin2, 'correlation': corr})
+
+        # Save the correlation matrix to a variable
+        correlation_ranking = pd.DataFrame(data, columns=['coin1', 'coin2', 'correlation']).sort_values(by=['correlation'], ascending=False)
+        correlation_ranking = correlation_ranking.dropna()
+        correlation_ranking = correlation_ranking.reset_index(drop=True)
+
+        print('Correlation of price between all pairs of coins:\n')
+
+        return correlation_ranking
+
+    def return_correlation(self):
+        """
+        Computes the correlation of percent changes (daily returns) between all pairs of coins.
 
         If self.id is a list, uses the saved_tables for each coin.
         If self.id is a string, returns None (not enough data for correlation).
@@ -276,6 +334,8 @@ class analyze_coin_market_chart:
         correlation_ranking = pd.DataFrame(data, columns=['coin1', 'coin2', 'correlation']).sort_values(by=['correlation'], ascending=False)
         correlation_ranking = correlation_ranking.dropna()
         correlation_ranking = correlation_ranking.reset_index(drop=True)
+
+        print('Correlation of daily returns between all pairs of coins:\n')
 
         return correlation_ranking
 
@@ -359,14 +419,3 @@ class analyze_coin_market_chart:
             plt.grid()
             plt.show()
             plt.show()
-
-if __name__ == "__main__":
-    # Sample analysis
-
-    coin_list = top_50_coins[:7]
-
-    try:
-        coin_analysis = analyze_coin_market_chart(id=coin_list)
-        print(coin_analysis.correlation_analysis())
-    except Exception as e:
-        print(f"Error during analysis: {e}")
