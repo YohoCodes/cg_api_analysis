@@ -1,4 +1,5 @@
 # Main class for chart analysis
+# Data sourced from CoinGecko API (https://www.coingecko.com/en/api)
 
 # Import modules
 import pandas as pd

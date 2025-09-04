@@ -141,6 +141,17 @@ Key dependencies include:
 - `requests`: HTTP requests
 - `numpy`: Numerical computations
 
+## Data Sources
+
+This project uses the [CoinGecko API](https://www.coingecko.com/en/api) to retrieve cryptocurrency market data. CoinGecko provides comprehensive cryptocurrency data including historical prices, market cap, volume, and more.
+
+### Attribution
+- **Data Source**: [CoinGecko](https://www.coingecko.com/)
+- **API Documentation**: [CoinGecko API Docs](https://www.coingecko.com/en/api/documentation)
+- **Terms of Service**: [CoinGecko API Terms](https://www.coingecko.com/en/api_terms)
+
+Please ensure compliance with CoinGecko's API terms of service when using this project.
+
 ## Rate Limiting
 
 The CoinGecko API has rate limits for free users. The project includes:
