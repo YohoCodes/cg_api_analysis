@@ -58,7 +58,7 @@ class analyze_coin_market_chart:
         Plots the price chart(s) for the coin(s) using the reformatted market chart data.
     """
 
-    def __init__(self, id = 'bitcoin', vs_currency = 'usd', days = 364, limit = False):
+    def __init__(self, id = 'bitcoin', vs_currency = 'usd', days = 364, limit = False, reset = False):
         """
         Initializes the analyze_coin_market_chart class.
 
@@ -84,6 +84,7 @@ class analyze_coin_market_chart:
         self.precision = 2
         self.is_saved = False
         self.cg = CoinGeckoAPI()
+        self.reset = reset
 
         # If limit is set, save the top coins using API call in top_coins() method.
         if limit:
@@ -172,7 +173,7 @@ class analyze_coin_market_chart:
 
         return df
 
-    def save_tables(self, coin_list, reset=False):
+    def save_tables(self, coin_list):
         """
         Saves reformatted market chart data tables for a list of coins.
 
@@ -193,7 +194,7 @@ class analyze_coin_market_chart:
         None
             Updates self.saved_tables and self.is_saved attributes.
         """
-        if reset:
+        if self.reset:
             self.is_saved = False
 
         # Check if the tables are already cached
@@ -231,14 +232,14 @@ class analyze_coin_market_chart:
                     )
 
                     # Reformat data into a dataframe and save it
-                    if raw_chart and 'prices' in raw_chart and len(raw_chart['prices']) != 0:
+                    if raw_chart and 'prices' in raw_chart and len(raw_chart['prices']) >= .5 * self.days:
                         self.saved_tables[coin] = self.reformat_data(raw_chart)
                         self.saved_tables[coin].to_csv(file_name)
                         print(f"Saved chart for {coin}...")
 
                     # Handle empty dataframe    
                     else:
-                        print(f"No data found for {coin}")
+                        print(f"Insufficient data found for {coin}")
                         failed_coins.append(coin)
                         continue
 

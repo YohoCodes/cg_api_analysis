@@ -1,4 +1,7 @@
 __pycache__/
+
 api_key.txt
-notebooks/
+
+cg_api_analysis.ipynb
+
 venv/
