@@ -33,15 +33,27 @@ class analyze_coin_market_chart:
         Dictionary of DataFrames for each coin (only if id is a list).
     raw_chart : dict
         Raw chart data for a single coin (only if id is a string).
+    top_coins : list
+        List of top coins by market cap (cached for reuse).
+    date_of_save : datetime.date
+        Date when top coins were last retrieved (for caching).
+    last_top_coin_limit : int
+        Last limit used for top coins retrieval (for caching).
 
     Methods
     -------
     reformat_data(chart_data=None):
         Converts raw market chart data into a pandas DataFrame indexed by date, with daily close and percent change.
-    save_tables(coin_list):
+    save_tables(coin_list, reset=False):
         Saves reformatted market chart data tables for a list of coins to disk and memory.
+    price_correlation():
+        Computes the correlation of daily close prices between all pairs of coins (if multiple coins).
+    return_correlation():
+        Computes the correlation of daily returns (percent changes) between all pairs of coins (if multiple coins).
     correlation_analysis():
-        Computes the correlation of percent changes between all pairs of coins (if multiple coins).
+        Computes the correlation of percent changes between all pairs of coins (if multiple coins) - legacy method.
+    top_coins(limit=5):
+        Retrieves the top N coins by market cap from the CoinGecko API with caching.
     plot():
         Plots the price chart(s) for the coin(s) using the reformatted market chart data.
     """
@@ -110,6 +122,9 @@ class analyze_coin_market_chart:
         """
         Converts the raw market chart data into a pandas DataFrame indexed by date.
 
+        This method processes raw CoinGecko API data and converts it into a structured pandas DataFrame
+        with daily close prices and percent changes. It handles date indexing and calculates daily returns.
+
         Parameters
         ----------
         chart_data : dict, optional
@@ -120,7 +135,14 @@ class analyze_coin_market_chart:
         pd.DataFrame
             DataFrame indexed by date with columns:
             - 'daily_close': closing price for the day
-            - 'percent_change': daily percent change in price
+            - 'percent_change': daily percent change in price (%)
+
+        Notes
+        -----
+        - Dates are assigned in reverse chronological order (most recent first)
+        - Percent change is calculated as ((current_price - previous_price) / previous_price) * 100
+        - Rows with NaN percent changes (first day) are automatically dropped
+        - DataFrame is sorted by date (ascending)
         """
         if chart_data is not None:
             # Extract prices
@@ -163,10 +185,13 @@ class analyze_coin_market_chart:
         ----------
         coin_list : list of str
             A list of coin IDs for which to save the reformatted data tables.
+        reset : bool, optional
+            If True, forces regeneration of tables even if already cached (default: False).
 
         Returns
         -------
         None
+            Updates self.saved_tables and self.is_saved attributes.
         """
         if reset:
             self.is_saved = False
@@ -341,12 +366,28 @@ class analyze_coin_market_chart:
 
     def top_coins(self, limit = 5):
         """
-        Retrieves the top coins by market cap from the CoinGecko API and saves it to self.top_coins_by_market_cap.
+        Retrieves the top coins by market cap from the CoinGecko API with intelligent caching.
+
+        This method fetches the top N cryptocurrencies by market capitalization from the CoinGecko API.
+        It implements caching to avoid unnecessary API calls - if the same limit was requested today,
+        it returns the cached result instead of making a new API call.
 
         Parameters
         ----------
         limit : int, optional
-            The number of top coins to retrieve (default is 5).
+            The number of top coins to retrieve (default: 5).
+
+        Returns
+        -------
+        list of str
+            List of coin IDs sorted by market cap (descending).
+            Returns empty list if API call fails.
+
+        Notes
+        -----
+        - Caching is based on the current date and the limit parameter
+        - Cache is automatically invalidated on a new day
+        - API failures are handled gracefully with error messages
         """
         # Check if the saved date matches today's date and the last limit used matches the current limit
         try:
@@ -382,6 +423,9 @@ class analyze_coin_market_chart:
         """
         Plots the price chart for the coin or coins using the reformatted market chart data.
 
+        Creates matplotlib visualizations of cryptocurrency price data. For multiple coins,
+        creates separate subplots for each coin. For a single coin, creates a single plot.
+
         If self.id is a list, plots each coin's price chart in a separate subplot.
         If self.id is a string, plots a single price chart.
 
@@ -389,6 +433,13 @@ class analyze_coin_market_chart:
         -------
         None
             Displays the plot(s) using matplotlib.
+
+        Notes
+        -----
+        - Uses daily close prices for plotting
+        - Automatically handles both single and multiple coin scenarios
+        - Subplot layout adjusts based on number of coins
+        - Includes grid lines and proper axis labels
         """
         # If id is a list, plot each coin in a separate subplot
         if isinstance(self.id, list):

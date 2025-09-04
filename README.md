@@ -1,6 +1,6 @@
 # Crypto API Analysis
 
-A comprehensive Python toolkit for analyzing cryptocurrency market data using the CoinGecko API. This project provides tools for retrieving, processing, and analyzing historical market chart data for cryptocurrencies with correlation analysis capabilities.
+A Python toolkit for analyzing cryptocurrency market data using the CoinGecko API. This project provides tools for retrieving, processing, and analyzing historical market chart data for cryptocurrencies with correlation analysis capabilities.
 
 ## Features
 
