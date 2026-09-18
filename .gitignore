@@ -1,7 +1,16 @@
 __pycache__/
 
+# macOS finder metadata
+.DS_Store
+
+# Secrets: keys belong in environment variables, never in the working tree.
 api_key.txt
+.env
+.env.*
+!.env.example
 
 cg_api_analysis.ipynb
 
 venv/
+
+datasets/
